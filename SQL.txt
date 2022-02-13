@@ -203,3 +203,14 @@ id	num
 10	5
 
 Replace null by just previous not null value?
+
+SELECT
+id, value, value_partition, first_value(value) over (partition by value_partition order by id)
+FROM (
+SELECT
+id,
+value,
+sum(case when value is null then 0 else 1 end) over (order by id) as value_partition
+FROM p
+ORDER BY id ASC
+) as q
