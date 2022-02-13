@@ -1,0 +1,205 @@
+SQL interview questions 
+
+Products
+PRODUCT_ID | PRODUCT_NAME
+100	       | NOKIA
+200	       | IPHONE
+300	       | SAMSUNG
+
+Sales
+SALE_ID	|PRODUCT_ID|YEAR	|QUANTITY|	PRICE
+1	    |100	   |2010	|25      |	5000
+2	    |100	   |2011	|16      |	5000
+3	    |100	   |2012	|8	     |  5000
+4	    |200	   |2010	|10      |	9000
+5	    |200	   |2011	|15      |	9000
+6	    |200	   |2012	|20      |	9000
+7	    |300	   |2010	|20      |	7000
+8	    |300	   |2011	|18      |	7000
+9	    |300	   |2012	|20      |	7000
+
+Here Quantity is the number of products sold in each year. Price is the sale price of each product.
+
+1.	Write a SQL query to find the products which have continuous increase in sales every year? 
+
+Select t2.product_name from (
+Select product_id from (
+Select product_id, year, curr_sales - NVL(lag(curr_sales) over(partition by product_id order by year asc),0) as diff_sales
+from (
+Select product_id, year,(quantity*price) as curr_sales from Sales )s )s1
+Group by product_id Having min(diff_sales)>0 )t1
+Join products t2 on t1.products=t2.products
+
+
+2.	Write a SQL query to find the products which does not have sales at all? 
+
+Select distinct t1.product_name from
+Products t1 Left Join
+ (Select product_id ,sum(total_sales)
+from (select product_id ,(quantity*price) as total_sales from sales) tmp group by product_id
+having sum(total_sales)>0
+) t2
+On t1.product_id=t2.product_id and t2.product_id is null
+
+
+3.	Write a SQL query to find the products whose sales decreased in 2012 compared to 2011?
+
+Select distinct t2.product_name from (
+Select product_id from (
+Select product_id, curr_sales-lead(curr_sales) over(partition by product_id order year DESC) as diff from (
+Select product_id,year,(quantity*price) as curr_sales from sales where year in (‘2011’,’2012’) )t1 Where year=’2012’ )t where diff <0 )t1
+Join Products t2
+On t1.product_id=t2.product_id Or
+Select distinct t3.products_name from Sales t1
+Join sales t2
+On t1.product_id=t2.product_id And and T1.year=2012
+and t2.year=2011
+And t1.quantity<t2.quantity Join
+Products t3 on t1.product_id=t3.product_id
+
+4. Write a query to select the top product sold in each year?
+
+Select distinct p.product_name,s1.year, s1.quantity from Sales s1
+Join (
+Select year,max(quantity) as max_quantity From sales
+Group by year ) s2
+ On s1.year=s2.year and s1.quantity=s2.quantity Join
+Products p
+On s1.product_id=s2.product_id Or
+Select t2.product_name from ( Select distinct product_id from (
+Select * , max(quantity) over(partition by year order by product_id) as max_quantity from Sales )s1
+Where quantity= max_quantity )t1 Join product t2
+On t1.product_id=t2.product_id Or
+Select * from (
+Select p.product_name, year, rank() over (partition by year order by quantity DESC) as rank1 From
+Sales s Join Product P
+On s.product_id=p.product_id
+) where rank1=1
+
+
+5.	Write a query to find the total sales of each product.?
+
+Select p.product_name, NVL(sum(quantity*price),0) s total_quantity from Product p
+Left Join Sales s
+On p.product_id=s.product_id Group by product_name
+
+1. Write a query to find the products whose quantity sold in a year should be greater than the average quantity of the product sold across all the years?
+
+Select distinct product_name from ( Select distinct products from (
+Select * ,avg(quantity) over(partition by product_id order by quantity) as avg_quantity From sales )t1
+Where quantity> avg_quantity )t1 Join
+Products t2
+On t1.product_id=t2.product_id
+ 
+1. Write a query to generate sequence numbers from 1 to the specified number N?
+
+Declare @N int; Set @N=10;
+
+Cte (n) (
+Select 1 Union all
+Select n+1 from cte Where n<=N
+)
+Select * from cte;
+
+
+3. Write a query to duplicate each row based on the value in the repeat column? The input table data looks like as below
+
+
+Products | Repeat
+
+A        |   3
+B        |   5
+C        |   2
+
+Now in the output data, the product A should be repeated 3 times, B should be repeated 5 times and C should be repeated 2 times. The output will look like as below
+
+Products| Repeat
+A       |	3
+A       |	3
+A       |	3
+B       |	5
+B       |	5
+B       |	5
+B       |	5
+B       |	5
+C       |	2
+C       |	2
+
+Cte()	
+(
+Select	
+ 
+Consecutive Available Seats
+
+Several friends at a cinema ticket office would like to reserve consecutive available seats.
+Can you help to query all the consecutive available seats order by the seat_id using the following cinema table?
+
+seat_id free
+
+
+
+Your query should return the following result for the sample case above. seat_id
+3
+4
+5
+
+
+with temp as (
+select seat_id,(seat_id-row_number() over(order by seat_id asc)) as diff from (
+(select seat_id from table where free=1 )t1
+),
+
+select distinct seat_id from temp t4
+join
+(select diff,count(distinct seat_id) from t1
+group by diff
+having count(distinct seat_id)>1 )t3 on t4.diff=t3.diff
+
+
+
+create table amazon1(order_id int, product_id varchar(25),
+amount int, quantity int)
+
+insert into amazon1 values(1,'echo',2000,150); insert into amazon1 values(1,'ftv',1000,50); insert into amazon1 values(1,'prime',200,200); insert into amazon1 values(1,'dot',2500,100); insert into amazon1 values(2,'echo',2000,150); insert into amazon1 values(2,'ftv',1000,50); insert into amazon1 values(2,'prime',200,200); insert into amazon1 values(2,'dot',2500,100);
+ 
+
+select * from amazon1
+
+SELECT distinct ORDER_ID,total_amount,minimum_product id,maximum_product id FROM ( select *,sum(amount) over(partition by order_id) as total_amount,
+FIRST_VALUE(product_id) over(partition by order_id order by quantity ASC) as minimum_product id,
+FIRST_VALUE(product_id) over(partition by order_id order by quantity DESC) as maximum_product id
+from amazon1)T
+
+
+select order_id,max(minimum_product  id1) as
+minimum_product id1,max(maximum_product id1) as maximum_product id1 from ( select order_id,
+case when minimum_product id=1 then product_id else NULL end as minimum_product id1, case when maximum_product id=1 then product_id else NULL end as maximum_product id1 from (
+select *,
+row_number() over(partition by order_id order by quantity ASC) as minimum_product id, row_number() over(partition by order_id order by quantity DESC
+) as maximum_product id from
+amazon1 )t
+where (minimum_product id=1 or maximum_product id=1) )t1 group by order_id
+
+create table tmp1 ( x varchar(30)
+)
+
+select min(x) from tmp1
+insert into tmp1 values('a') insert into tmp1 values('b') insert into tmp1 values(NULL)
+--question 2: To improve the performance of a restaurant and its delivery associate design entities/data model.?swiggy or food panda type system
+
+restaurant(id,name,address,rating) orders(order_id,restaurant_id,customer_id,product_id,order_date,amount,customer_rating) customer(id,name,address,phone_no, zip_code) asscociate(id,name,restaurat_id,avg_rating)
+Questions:
+ 
+id	num
+1	1
+2	2
+3	NULL
+4	NULL
+5	3
+6	NULL
+7	4
+8	NULL
+9	NULL
+10	5
+
+Replace null by just previous not null value?
